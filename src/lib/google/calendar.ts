@@ -140,11 +140,11 @@ export async function createEvent(
             summary: response.data.summary!,
             start: {
                 dateTime: response.data.start?.dateTime!,
-                timeZone: response.data.start?.timeZone,
+                timeZone: response.data.start?.timeZone ?? undefined,
             },
             end: {
                 dateTime: response.data.end?.dateTime!,
-                timeZone: response.data.end?.timeZone,
+                timeZone: response.data.end?.timeZone ?? undefined,
             },
         };
     } catch (error) {
@@ -186,11 +186,11 @@ export async function findEventByDate(date: Date): Promise<CalendarEvent | null>
             summary: event.summary || 'Appointment',
             start: {
                 dateTime: event.start?.dateTime || event.start?.date!,
-                timeZone: event.start?.timeZone,
+                timeZone: event.start?.timeZone ?? undefined,
             },
             end: {
                 dateTime: event.end?.dateTime || event.end?.date!,
-                timeZone: event.end?.timeZone,
+                timeZone: event.end?.timeZone ?? undefined,
             },
         };
     } catch (error) {
@@ -229,11 +229,11 @@ export async function updateEvent(
             summary: response.data.summary!,
             start: {
                 dateTime: response.data.start?.dateTime!,
-                timeZone: response.data.start?.timeZone,
+                timeZone: response.data.start?.timeZone ?? undefined,
             },
             end: {
                 dateTime: response.data.end?.dateTime!,
-                timeZone: response.data.end?.timeZone,
+                timeZone: response.data.end?.timeZone ?? undefined,
             },
         };
     } catch (error) {
