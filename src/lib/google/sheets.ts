@@ -38,10 +38,10 @@ async function ensureSheetExists(): Promise<void> {
             // Add headers
             await sheets.spreadsheets.values.update({
                 spreadsheetId,
-                range: `${SHEET_NAME}!A1:E1`,
+                range: `${SHEET_NAME}!A1:F1`,
                 valueInputOption: 'RAW',
                 requestBody: {
-                    values: [['Timestamp', 'User Request', 'Action', 'Appointment DateTime', 'Status']],
+                    values: [['Timestamp', 'User Request', 'Action', 'Appointment DateTime', 'Status', 'Booking Code']],
                 },
             });
 
@@ -64,7 +64,7 @@ export async function logAction(entry: LogEntry): Promise<void> {
 
         await sheets.spreadsheets.values.append({
             spreadsheetId,
-            range: `${SHEET_NAME}!A:E`,
+            range: `${SHEET_NAME}!A:F`,
             valueInputOption: 'USER_ENTERED',
             requestBody: {
                 values: [[
@@ -73,6 +73,7 @@ export async function logAction(entry: LogEntry): Promise<void> {
                     entry.actionTaken,
                     entry.appointmentDateTime,
                     entry.status,
+                    entry.bookingCode || '',
                 ]],
             },
         });
@@ -86,7 +87,8 @@ export async function logAction(entry: LogEntry): Promise<void> {
 // Log a booking action
 export async function logBooking(
     userRequest: string,
-    appointmentDateTime: string
+    appointmentDateTime: string,
+    bookingCode?: string
 ): Promise<void> {
     await logAction({
         timestamp: new Date().toISOString(),
@@ -94,13 +96,15 @@ export async function logBooking(
         actionTaken: 'BOOKED',
         appointmentDateTime,
         status: 'Confirmed',
+        bookingCode,
     });
 }
 
 // Log a reschedule action
 export async function logReschedule(
     userRequest: string,
-    newAppointmentDateTime: string
+    newAppointmentDateTime: string,
+    bookingCode?: string
 ): Promise<void> {
     await logAction({
         timestamp: new Date().toISOString(),
@@ -108,13 +112,15 @@ export async function logReschedule(
         actionTaken: 'RESCHEDULED',
         appointmentDateTime: newAppointmentDateTime,
         status: 'Updated',
+        bookingCode,
     });
 }
 
 // Log a cancellation action
 export async function logCancellation(
     userRequest: string,
-    appointmentDateTime: string
+    appointmentDateTime: string,
+    bookingCode?: string
 ): Promise<void> {
     await logAction({
         timestamp: new Date().toISOString(),
@@ -122,5 +128,6 @@ export async function logCancellation(
         actionTaken: 'CANCELLED',
         appointmentDateTime,
         status: 'Cancelled',
+        bookingCode,
     });
 }

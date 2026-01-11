@@ -75,4 +75,5 @@ export interface LogEntry {
     actionTaken: string;
     appointmentDateTime: string;
     status: string;
+    bookingCode?: string;
 }

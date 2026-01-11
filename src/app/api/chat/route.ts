@@ -31,6 +31,7 @@ import {
     sendRescheduleConfirmation,
     sendCancellationConfirmation
 } from '@/lib/google/gmail';
+import { generateBookingCode } from '@/lib/utils/bookingCode';
 
 export async function POST(request: NextRequest): Promise<NextResponse<ChatResponse>> {
     try {
@@ -118,32 +119,37 @@ async function handleBooking(
         const isAvailable = await checkAvailability(appointmentTime, endTime);
 
         if (isAvailable) {
-            // Book the appointment
+            // Generate unique booking code
+            const bookingCode = generateBookingCode();
+
+            // Book the appointment with booking code
             const event = await createEvent(
                 'Appointment - Voice Scheduler',
                 appointmentTime,
-                endTime
+                endTime,
+                undefined,
+                bookingCode
             );
 
             const formattedDateTime = formatDateTime(appointmentTime);
 
             // Log to sheets and send email with proper error handling
             try {
-                await logBooking(message, formattedDateTime);
+                await logBooking(message, formattedDateTime, bookingCode);
                 console.log('✅ Logged to sheets successfully');
             } catch (logError) {
                 console.error('❌ Failed to log to sheets:', logError);
             }
 
             try {
-                const emailSent = await sendBookingConfirmation(formattedDateTime);
+                const emailSent = await sendBookingConfirmation(formattedDateTime, bookingCode);
                 console.log(emailSent ? '✅ Email sent successfully' : '⚠️ Email not sent');
             } catch (emailError) {
                 console.error('❌ Failed to send email:', emailError);
             }
 
             return NextResponse.json({
-                reply: `✅ **Appointment Confirmed!**\n\n📅 **Date:** ${formattedDateTime}\n\nYour appointment has been successfully booked. You'll receive a confirmation email shortly.`,
+                reply: `✅ **Appointment Confirmed!**\n\n🎫 **Booking Code:** ${bookingCode}\n📅 **Date:** ${formattedDateTime}\n\nYour appointment has been successfully booked. You'll receive a confirmation email shortly.`,
                 newState: resetState(),
                 success: true,
             });
@@ -198,6 +204,9 @@ async function handleSlotSelection(
 
     try {
         if (state.currentIntent === 'RESCHEDULE' && state.originalEvent) {
+            // Generate booking code for rescheduled appointment
+            const bookingCode = generateBookingCode();
+
             // Update the existing event
             await updateEvent(state.originalEvent.id, startTime, endTime);
 
@@ -206,45 +215,48 @@ async function handleSlotSelection(
 
             // Log and send email with proper error handling
             try {
-                await logReschedule(message, formattedDateTime);
+                await logReschedule(message, formattedDateTime, bookingCode);
                 console.log('✅ Logged reschedule to sheets');
             } catch (logError) {
                 console.error('❌ Failed to log reschedule:', logError);
             }
 
             try {
-                await sendRescheduleConfirmation(formattedOldDateTime, formattedDateTime);
+                await sendRescheduleConfirmation(formattedOldDateTime, formattedDateTime, bookingCode);
                 console.log('✅ Reschedule email sent');
             } catch (emailError) {
                 console.error('❌ Failed to send reschedule email:', emailError);
             }
 
             return NextResponse.json({
-                reply: `✅ **Appointment Rescheduled!**\n\n📅 **New Time:** ${formattedDateTime}\n\nYour appointment has been successfully moved from ${formattedOldDateTime}.`,
+                reply: `✅ **Appointment Rescheduled!**\n\n🎫 **Booking Code:** ${bookingCode}\n📅 **New Time:** ${formattedDateTime}\n\nYour appointment has been successfully moved from ${formattedOldDateTime}.`,
                 newState: resetState(),
                 success: true,
             });
         } else {
-            // Create new booking
-            await createEvent('Appointment - Voice Scheduler', startTime, endTime);
+            // Generate booking code for new booking
+            const bookingCode = generateBookingCode();
+
+            // Create new booking with booking code
+            await createEvent('Appointment - Voice Scheduler', startTime, endTime, undefined, bookingCode);
 
             // Log and send email with proper error handling
             try {
-                await logBooking(message, formattedDateTime);
+                await logBooking(message, formattedDateTime, bookingCode);
                 console.log('✅ Logged booking to sheets');
             } catch (logError) {
                 console.error('❌ Failed to log booking:', logError);
             }
 
             try {
-                await sendBookingConfirmation(formattedDateTime);
+                await sendBookingConfirmation(formattedDateTime, bookingCode);
                 console.log('✅ Booking email sent');
             } catch (emailError) {
                 console.error('❌ Failed to send booking email:', emailError);
             }
 
             return NextResponse.json({
-                reply: `✅ **Appointment Confirmed!**\n\n📅 **Date:** ${formattedDateTime}\n\nYour appointment has been successfully booked.`,
+                reply: `✅ **Appointment Confirmed!**\n\n🎫 **Booking Code:** ${bookingCode}\n📅 **Date:** ${formattedDateTime}\n\nYour appointment has been successfully booked.`,
                 newState: resetState(),
                 success: true,
             });
@@ -282,26 +294,29 @@ async function handleReschedule(
         const isAvailable = await checkAvailability(newAppointmentTime, newEndTime);
 
         if (isAvailable) {
+            // Generate booking code for rescheduled appointment
+            const bookingCode = generateBookingCode();
+
             await updateEvent(state.originalEvent.id, newAppointmentTime, newEndTime);
             const formattedDateTime = formatDateTime(newAppointmentTime);
             const oldDateTime = formatDateTime(new Date(state.originalEvent.start));
 
             try {
-                await logReschedule(message, formattedDateTime);
+                await logReschedule(message, formattedDateTime, bookingCode);
                 console.log('✅ Logged reschedule to sheets');
             } catch (logError) {
                 console.error('❌ Failed to log reschedule:', logError);
             }
 
             try {
-                await sendRescheduleConfirmation(oldDateTime, formattedDateTime);
+                await sendRescheduleConfirmation(oldDateTime, formattedDateTime, bookingCode);
                 console.log('✅ Reschedule email sent');
             } catch (emailError) {
                 console.error('❌ Failed to send reschedule email:', emailError);
             }
 
             return NextResponse.json({
-                reply: `✅ **Appointment Rescheduled!**\n\n📅 **New Time:** ${formattedDateTime}\n\nYour appointment has been moved from ${oldDateTime}.`,
+                reply: `✅ **Appointment Rescheduled!**\n\n🎫 **Booking Code:** ${bookingCode}\n📅 **New Time:** ${formattedDateTime}\n\nYour appointment has been moved from ${oldDateTime}.`,
                 newState: resetState(),
                 success: true,
             });
@@ -380,26 +395,29 @@ async function handleReschedule(
             const isAvailable = await checkAvailability(newAppointmentTime, newEndTime);
 
             if (isAvailable) {
+                // Generate booking code for rescheduled appointment
+                const bookingCode = generateBookingCode();
+
                 await updateEvent(event.id, newAppointmentTime, newEndTime);
                 const formattedDateTime = formatDateTime(newAppointmentTime);
                 const oldDateTime = formatDateTime(new Date(event.start.dateTime));
 
                 try {
-                    await logReschedule(message, formattedDateTime);
+                    await logReschedule(message, formattedDateTime, bookingCode);
                     console.log('✅ Logged reschedule to sheets');
                 } catch (logError) {
                     console.error('❌ Failed to log reschedule:', logError);
                 }
 
                 try {
-                    await sendRescheduleConfirmation(oldDateTime, formattedDateTime);
+                    await sendRescheduleConfirmation(oldDateTime, formattedDateTime, bookingCode);
                     console.log('✅ Reschedule email sent');
                 } catch (emailError) {
                     console.error('❌ Failed to send reschedule email:', emailError);
                 }
 
                 return NextResponse.json({
-                    reply: `✅ **Appointment Rescheduled!**\n\n📅 **New Time:** ${formattedDateTime}\n\nYour appointment has been moved from ${oldDateTime}.`,
+                    reply: `✅ **Appointment Rescheduled!**\n\n🎫 **Booking Code:** ${bookingCode}\n📅 **New Time:** ${formattedDateTime}\n\nYour appointment has been moved from ${oldDateTime}.`,
                     newState: resetState(),
                     success: true,
                 });
@@ -463,26 +481,29 @@ async function handleCancellation(
 
         const formattedDateTime = formatDateTime(new Date(event.start.dateTime));
 
+        // Generate booking code for cancellation tracking
+        const bookingCode = generateBookingCode();
+
         // Delete the event
         await deleteEvent(event.id);
 
         // Log and send email with proper error handling
         try {
-            await logCancellation(message, formattedDateTime);
+            await logCancellation(message, formattedDateTime, bookingCode);
             console.log('✅ Logged cancellation to sheets');
         } catch (logError) {
             console.error('❌ Failed to log cancellation:', logError);
         }
 
         try {
-            await sendCancellationConfirmation(formattedDateTime);
+            await sendCancellationConfirmation(formattedDateTime, bookingCode);
             console.log('✅ Cancellation email sent');
         } catch (emailError) {
             console.error('❌ Failed to send cancellation email:', emailError);
         }
 
         return NextResponse.json({
-            reply: `✅ **Appointment Cancelled**\n\nYour appointment on ${formattedDateTime} has been cancelled. A confirmation email has been sent.`,
+            reply: `✅ **Appointment Cancelled**\n\n🎫 **Reference Code:** ${bookingCode}\n📅 **Cancelled Appointment:** ${formattedDateTime}\n\nA confirmation email has been sent.`,
             newState: resetState(),
             success: true,
         });
@@ -507,25 +528,28 @@ async function handleConfirmation(
         const appointmentTime = combineDateAndTime(date, state.targetTime);
         const endTime = getEndTime(appointmentTime);
 
-        await createEvent('Appointment - Voice Scheduler', appointmentTime, endTime);
+        // Generate booking code
+        const bookingCode = generateBookingCode();
+
+        await createEvent('Appointment - Voice Scheduler', appointmentTime, endTime, undefined, bookingCode);
         const formattedDateTime = formatDateTime(appointmentTime);
 
         try {
-            await logBooking(message, formattedDateTime);
+            await logBooking(message, formattedDateTime, bookingCode);
             console.log('✅ Logged confirmation to sheets');
         } catch (logError) {
             console.error('❌ Failed to log confirmation:', logError);
         }
 
         try {
-            await sendBookingConfirmation(formattedDateTime);
+            await sendBookingConfirmation(formattedDateTime, bookingCode);
             console.log('✅ Confirmation email sent');
         } catch (emailError) {
             console.error('❌ Failed to send confirmation email:', emailError);
         }
 
         return NextResponse.json({
-            reply: `✅ **Appointment Confirmed!**\n\n📅 **Date:** ${formattedDateTime}\n\nYour appointment has been booked.`,
+            reply: `✅ **Appointment Confirmed!**\n\n🎫 **Booking Code:** ${bookingCode}\n📅 **Date:** ${formattedDateTime}\n\nYour appointment has been booked.`,
             newState: resetState(),
             success: true,
         });

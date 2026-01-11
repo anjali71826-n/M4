@@ -113,17 +113,24 @@ export async function createEvent(
     title: string,
     startTime: Date,
     endTime: Date,
-    description?: string
+    description?: string,
+    bookingCode?: string
 ): Promise<CalendarEvent> {
     const calendar = getCalendarClient();
     const calendarId = getCalendarId();
+
+    // Build description with booking code
+    let eventDescription = description || 'Appointment booked via Voice Scheduler';
+    if (bookingCode) {
+        eventDescription = `📋 Booking Code: ${bookingCode}\n\n${eventDescription}`;
+    }
 
     try {
         const response = await calendar.events.insert({
             calendarId,
             requestBody: {
                 summary: title,
-                description: description || 'Appointment booked via Voice Scheduler',
+                description: eventDescription,
                 start: {
                     dateTime: startTime.toISOString(),
                     timeZone: 'Asia/Kolkata',
