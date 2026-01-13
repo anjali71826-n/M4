@@ -12,7 +12,7 @@ node_modules/
 service_account.json
 
 # Next.js build output
-.next/
+.next
 out/
 
 # TypeScript build info
@@ -39,6 +39,22 @@ yarn-error.log*
 
 # Vercel
 .vercel/
-.env
-*.json
-credentials*
+
+# Sensitive credential files (service accounts, API keys)
+**/service_account*.json
+**/credentials*.json
+*-credentials.json
+*-key.json
+*.pem
+*.p12
+
+# Coverage & Testing
+coverage/
+.nyc_output/
+
+# Debug
+*.log
+
+# Cache
+.cache/
+*.tsbuildinfo
