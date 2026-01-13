@@ -87,31 +87,31 @@ src/
    
    Create a `.env` file in the root directory:
    ```env
+   # Google Service Account Credentials
+   GOOGLE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+   GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   GOOGLE_PROJECT_ID=your-project-id
+   
    # Google Calendar
    GOOGLE_CALENDAR_ID=your-calendar-id@group.calendar.google.com
    
    # Google Sheets
-   GOOGLE_SHEETS_ID=your-google-sheets-id
+   GOOGLE_SPREADSHEET_ID=your-google-sheets-id
    
    # Gmail Configuration
-   GMAIL_USER=your-email@gmail.com
+   GMAIL_SENDER_EMAIL=your-email@gmail.com
    GMAIL_APP_PASSWORD=your-app-password
-   
-   # Service Account (for Calendar & Sheets)
-   GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
-   GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   ADVISOR_EMAIL=advisor@example.com
    ```
 
-4. **Add Service Account JSON** (optional)
-   
-   Place your `service_account.json` file in the root directory for Google API authentication.
+   > ⚠️ **Security Note:** Never commit `.env` to version control. It contains sensitive credentials.
 
-5. **Run the development server**
+4. **Run the development server**
    ```bash
    npm run dev
    ```
 
-6. **Open in browser**
+5. **Open in browser**
    
    Navigate to [http://localhost:3000](http://localhost:3000)
 

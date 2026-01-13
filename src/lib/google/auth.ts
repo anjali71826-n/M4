@@ -1,10 +1,6 @@
 import { google } from 'googleapis';
-import * as path from 'path';
-import * as fs from 'fs';
 
-// Load service account credentials
-const SERVICE_ACCOUNT_PATH = path.join(process.cwd(), 'service_account.json');
-
+// Get service account credentials from environment variables
 let serviceAccountCredentials: {
     client_email: string;
     private_key: string;
@@ -16,14 +12,23 @@ function getServiceAccountCredentials() {
         return serviceAccountCredentials;
     }
 
-    try {
-        const content = fs.readFileSync(SERVICE_ACCOUNT_PATH, 'utf8');
-        serviceAccountCredentials = JSON.parse(content);
-        return serviceAccountCredentials;
-    } catch (error) {
-        console.error('Error loading service account:', error);
-        throw new Error('Failed to load service account credentials');
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    const projectId = process.env.GOOGLE_PROJECT_ID;
+
+    if (!clientEmail || !privateKey || !projectId) {
+        throw new Error(
+            'Missing required environment variables: GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_PROJECT_ID'
+        );
     }
+
+    serviceAccountCredentials = {
+        client_email: clientEmail,
+        private_key: privateKey,
+        project_id: projectId,
+    };
+
+    return serviceAccountCredentials;
 }
 
 // Create JWT auth client for Google APIs
